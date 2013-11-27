@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Data.Region.IORefCount (
-    IORefCount, newIORefCount
+    IORefCount, newIORefCount, withIORefCount
 ) where
 
 import Control.Monad.Trans.Region
@@ -28,3 +28,9 @@ newIORefCount finalize = do
     release ref = do
         count <- liftIO $ atomicModifyIORef' ref (\x -> (x - 1, x))
         when (count == 1) finalize
+
+-- |@withIORefCount@ lifts an operation into the region monad. A handle is
+-- specified to ensure that the operation can only be used when the handle is
+-- in the same context as the current region.
+withIORefCount :: MonadIO m => IORefCount c m -> m a -> RegionT t c m a
+withIORefCount (IORefCount handle) = withHandle handle
