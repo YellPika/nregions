@@ -10,11 +10,11 @@ maintainer:          yellpika@gmail.com
 copyright:           Copyright © Anthony Vandikas, 2013
 category:            Control
 build-type:          Simple
--- extra-source-files:  
+extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Control.Monad.Region
+  exposed-modules:     Control.Monad.Region, Data.Region.IORefCount
   -- other-modules:       
   build-depends:       base >=4.6 && <4.7, transformers
   hs-source-dirs:      src
