@@ -1,7 +1,29 @@
+# Haskell stuff
 dist
 cabal-dev
+cabal.sandbox.config
 *.o
 *.hi
 *.chi
 *.chs.h
 .virthualenv
+
+# Windows stuff
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# OSX stuff
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux stuff
+.*
+!.gitignore
+*~
