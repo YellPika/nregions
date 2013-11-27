@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Data.Region.IORefCount (
     IORefCount, newIORefCount
 ) where
@@ -11,6 +13,7 @@ import Data.IORef (newIORef, atomicModifyIORef')
 -- |Maintains a reference count, and invokes a finalizer when the reference
 -- count hits zero.
 newtype IORefCount c m = IORefCount (Handle c m)
+  deriving Resource
 
 -- |@newIORefCount f@ creates a new `IORefCount` with an initial reference count
 -- of 1. The finalizer @f@ is run when the reference count hits zero.
