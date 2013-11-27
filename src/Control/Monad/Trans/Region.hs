@@ -38,7 +38,7 @@ instance Monad m => Monoid (Context m) where
         Context (x >> x') (y' >> y)
 
 -- |A master region cannot capture resources from the surrounding scope.
-data Master
+data Master r
 
 -- |A slave region may capture resources from the scope with the context `c`.
 data Slave c
@@ -64,7 +64,7 @@ instance MonadTrans (RegionT t c) where
 
 -- |Executes a region computation. Any resources that are opened within the
 -- region are released when the computation terminates.
-runRegionT :: Monad m => (forall c. RegionT Master c m a) -> m a
+runRegionT :: Monad m => (forall r c. RegionT (Master r) c m a) -> m a
 runRegionT region = fullRun region mempty
 
 -- |/Scoping/ nests a region within another region. The inner region does not
@@ -80,7 +80,7 @@ scope region = RegionT $ do
 -- automatically captures all resources from the outer region. Resources may not
 -- escape to the outer scope. During a reset, users can execute arbitrary
 -- operations that don't involve resources, such as forking.
-reset :: Monad m => (m a -> m b) -> RegionT Master c m a -> RegionT t c m b
+reset :: Monad m => (m a -> m b) -> (forall r. RegionT (Master r) c m a) -> RegionT t c m b
 reset f region = RegionT $ do
     local <- gets fst
     lift $ do
@@ -108,21 +108,21 @@ class Resource a where
     -- |Imports a resource from the surrounding scope. A resource can only be
     -- brought in one `scope` level at a time, and may not be transferred across
     -- a `reset`.
-    capture :: Monad m => a c m -> RegionT (Slave c) c' m (a c' m)
+    capture :: Monad m => a t c m -> RegionT (Slave c) c' m (a (Slave c) c' m)
 
     -- |Exports a resource into the surrounding scope. A resource can only be
     -- exported out of one `scope` level at time, and may not be transferred
     -- across a `reset`.
-    escape :: Monad m => a c m -> RegionT (Slave c') c m (a c' m)
+    escape :: Monad m => a (Slave c') c m -> RegionT (Slave c') c m (a t c' m)
 
 -- |Handles are the simplest possible resource type. Users can specify actions
 -- to execute when the containing region is reset or the handle changes scope.
-data Handle c m = Handle (Context m)
+data Handle t c m = Handle (Context m)
 
 -- |@newHandle r s@ creates a new `Handle`. @r@ is called immediately, and when
 -- `reset` is called within the containing region. @s@ is called when the handle
 -- is `capture`d or `escape`d.
-newHandle :: Monad m => m () -> m () -> RegionT t c m (Handle c m)
+newHandle :: Monad m => m () -> m () -> RegionT t c m (Handle t c m)
 newHandle onReset onScope = newHandleOn first $ Context onReset onScope
 
 -- Creates a new handle from an existing context, ensures it is initialized,
@@ -136,7 +136,7 @@ newHandleOn :: Monad m =>
         (Context m, Context m) ->
         (Context m, Context m)) ->
     Context m ->
-    RegionT t c m (Handle c' m)
+    RegionT t c m (Handle t' c' m)
 newHandleOn append context = RegionT $ do
     lift $ initialize context
     modify $ append (<> context)
@@ -145,7 +145,7 @@ newHandleOn append context = RegionT $ do
 -- |@withHandle@ lifts an operation into the region monad. A handle is specified
 -- to ensure that the operation can only be used when the handle is in the same
 -- context as the current region.
-withHandle :: Monad m => Handle c m -> m a -> RegionT t c m a
+withHandle :: Monad m => Handle t' c m -> m a -> RegionT t c m a
 withHandle _ = lift
 
 instance Resource Handle where

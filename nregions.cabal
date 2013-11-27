@@ -14,7 +14,9 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Control.Monad.Trans.Region, Data.Region.IORefCount
+  exposed-modules:     Control.Monad.Trans.Region,
+                       Data.Region.IORefCount,
+                       Data.Region.IORegionRef
   -- other-modules:       
   build-depends:       base >=4.6 && <4.7, transformers
   hs-source-dirs:      src
