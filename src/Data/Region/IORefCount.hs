@@ -2,7 +2,7 @@ module Data.Region.IORefCount (
     IORefCount, newIORefCount
 ) where
 
-import Control.Monad.Region
+import Control.Monad.Trans.Region
 
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
