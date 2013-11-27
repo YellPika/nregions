@@ -117,7 +117,7 @@ class Resource a where
 
 -- |Handles are the simplest possible resource type. Users can specify actions
 -- to execute when the containing region is reset or the handle changes scope.
-data Handle t c m = Handle (Context m)
+newtype Handle t c m = Handle { unHandle :: Context m }
 
 -- |@newHandle r s@ creates a new `Handle`. @r@ is called immediately, and when
 -- `reset` is called within the containing region. @s@ is called when the handle
@@ -149,5 +149,5 @@ withHandle :: Monad m => Handle t' c m -> m a -> RegionT t c m a
 withHandle _ = lift
 
 instance Resource Handle where
-    capture (Handle context) = newHandleOn first context
-    escape (Handle context) = newHandleOn second context
+    capture = newHandleOn first . unHandle
+    escape = newHandleOn second . unHandle
