@@ -14,7 +14,7 @@ import Control.Monad.Region
 import Data.Region.IORefCount
 
 import Control.Monad (liftM)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans (MonadIO, liftIO)
 import Data.IORef (IORef, atomicWriteIORef, atomicModifyIORef, modifyIORef, newIORef, readIORef, writeIORef)
 
 data IORegionRef a m s = IORegionRef (IORef a) (IORefCount m s)

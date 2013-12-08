@@ -7,7 +7,7 @@ module Data.Region.IORefCount (
 import Control.Monad.Region
 
 import Control.Monad (when)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans (MonadIO, liftIO)
 import Data.IORef (newIORef, atomicModifyIORef')
 
 -- |Maintains a reference count, and invokes a finalizer when the reference
