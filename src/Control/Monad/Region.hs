@@ -63,10 +63,10 @@ data Scope p c
 runRegionT :: MonadError e m => (forall p c. RegionT (Scope p c) m a) -> m a
 runRegionT region = runMaster region []
 
--- |/Resetting/ nests a region within another region. The inner region
--- automatically captures all resources from the outer region. Resources may not
--- escape to the outer scope. During a reset, users can execute arbitrary
--- operations that don't involve resources, such as forking.
+-- |`reset` nests a region within another region. The inner region automatically
+-- captures all resources from the outer region. Resources may not escape to the
+-- outer scope. During a reset, users can execute arbitrary resource-independent
+-- operations, such as forking a thread.
 reset :: MonadError e m => (m a -> m b) -> (forall p'. RegionT (Scope p' c) m a) -> RegionT (Scope p c) m b
 reset transform region = RegionT $ do
     boxes <- ask
@@ -90,7 +90,7 @@ runMaster = runReaderT . run . unRegionT
         lift (load box)
         local (box:) (run next) `finally` lift (unload box)
 
--- |/Scoping/ nests a region within another region. The inner region does not
+-- |`scope` nests a region within another region. The inner region does not
 -- inherit any resources from the parent, but may do so explicitly by calling
 -- `capture`. Resources may be used by the outer scope by calling `escape`.
 scope :: MonadError e m => (forall c'. RegionT (Scope c c') m a) -> RegionT (Scope p c) m a
