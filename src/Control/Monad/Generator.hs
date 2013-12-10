@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RankNTypes, TupleSections, TypeOperators, UndecidableInstances #-}
 
 module Control.Monad.Generator (
-    GeneratorT, runGeneratorT, yield
+    GeneratorT (..), yield
 ) where
 
 import Control.Arrow (second)
@@ -10,6 +10,7 @@ import Control.Monad (MonadPlus, ap, liftM, mzero, mplus)
 import Control.Monad.Trans (MonadIO, MonadTrans, lift, liftIO)
 import Control.Monad.Error (MonadError, catchError, throwError)
 import Control.Monad.Reader (MonadReader, ask, local)
+import Control.Monad.State (MonadState, get, put)
 
 newtype GeneratorT y m a = GeneratorT {
     runGeneratorT :: m (Either a (y, GeneratorT y m a))
@@ -60,3 +61,7 @@ instance MonadReader r m => MonadReader r (GeneratorT y m) where
     local f x = GeneratorT $
         liftM (either Left (Right . second (local f))) $
         local f (runGeneratorT x)
+
+instance MonadState s m => MonadState s (GeneratorT y m) where
+    get = lift get
+    put = lift . put

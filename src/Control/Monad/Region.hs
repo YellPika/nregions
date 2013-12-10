@@ -17,11 +17,12 @@ module Control.Monad.Region (
 ) where
 
 import Control.Applicative (Applicative, Alternative)
-import Control.Monad ((>=>))
+import Control.Monad (MonadPlus, (>=>), liftM)
 import Control.Monad.Trans (MonadIO, MonadTrans, lift)
 import Control.Monad.Error (MonadError, catchError, throwError)
-import Control.Monad.Generator (GeneratorT, runGeneratorT, yield)
-import Control.Monad.Reader (ReaderT, runReaderT, ask, local)
+import Control.Monad.Generator (GeneratorT (..), yield)
+import Control.Monad.Reader (MonadReader, ReaderT (..), ask, local)
+import Control.Monad.State (MonadState)
 
 data Box m = Box { load :: m (), unload :: m () }
 
@@ -37,10 +38,18 @@ data Command m = Capture (Box m) | Escape (Box m)
 -- [@a@] The computation result type.
 newtype RegionT s m a = RegionT {
     unRegionT :: GeneratorT (Command m) (ReaderT [Box m] m) a
-} deriving (Alternative, Applicative, Functor, Monad, MonadError e, MonadIO)
+} deriving (Alternative, Applicative,
+            Functor, Monad, MonadError e,
+            MonadIO, MonadPlus, MonadState t)
 
 instance MonadTrans (RegionT s) where
     lift = RegionT . lift . lift
+
+-- Because ReaderT hides any MonadReader instances from m...
+instance MonadReader e m => MonadReader e (RegionT s m) where
+    ask = RegionT $ GeneratorT $ ReaderT $ const $ liftM Left ask
+    local f (RegionT (GeneratorT (ReaderT x))) =
+        RegionT $ GeneratorT $ ReaderT $ local f . x
 
 -- |Describes a region's context.
 --
