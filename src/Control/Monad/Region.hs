@@ -16,6 +16,7 @@ module Control.Monad.Region (
     Handle, newHandle, withHandle
 ) where
 
+import Control.Applicative (Applicative, Alternative)
 import Control.Monad ((>=>))
 import Control.Monad.Trans (MonadIO, MonadTrans, lift)
 import Control.Monad.Error (MonadError, catchError, throwError)
@@ -36,7 +37,7 @@ data Command m = Capture (Box m) | Escape (Box m)
 -- [@a@] The computation result type.
 newtype RegionT s m a = RegionT {
     unRegionT :: GeneratorT (Command m) (ReaderT [Box m] m) a
-} deriving (Functor, Monad, MonadError e, MonadIO)
+} deriving (Alternative, Applicative, Functor, Monad, MonadError e, MonadIO)
 
 instance MonadTrans (RegionT s) where
     lift = RegionT . lift . lift
