@@ -24,8 +24,7 @@ import Control.Monad.Generator (GeneratorT (..), yield)
 import Control.Monad.Reader (MonadReader, ReaderT (..), ask, local)
 import Control.Monad.State (MonadState)
 
-data Box m = Box { load :: m (), unload :: m () }
-
+data Box m = Box (m ()) (m ())
 data Command m = Capture (Box m) | Escape (Box m)
 
 -- |A region is a computation that ensures that any open resources are closed
@@ -74,21 +73,22 @@ reset transform region = RegionT $ do
         loadAll boxes
         transform $ runMaster region [] `finally` unloadAll boxes
   where
-    unloadAll = foldr (finally . unload) (return ())
+    unloadAll [] = return ()
+    unloadAll (Box _ unload : xs) = unload `finally` unloadAll xs
 
     loadAll [] = return ()
-    loadAll (x:xs) = do
-        load x
-        loadAll xs `onError` unload x
+    loadAll (Box load unload : xs) = do
+        load
+        loadAll xs `onError` unload
 
 runMaster :: MonadError e m => RegionT s m a -> [Box m] -> m a
 runMaster = runReaderT . run . unRegionT
   where
     run = runGeneratorT >=> either return command
     command (Escape _, _) = undefined
-    command (Capture box, next) = do
-        lift (load box)
-        local (box:) (run next) `finally` lift (unload box)
+    command (Capture box@(Box load unload), next) = do
+        lift load
+        local (box:) (run next) `finally` lift unload
 
 -- |`scope` nests a region within another region. The inner region does not
 -- inherit any resources from the parent, but may do so explicitly by calling
@@ -97,13 +97,13 @@ scope :: MonadError e m => (forall c'. RegionT (Scope c c') m a) -> RegionT (Sco
 scope region = RegionT $ local (const []) $ run $ unRegionT region
   where
     run x = lift (runGeneratorT x) >>= either return (uncurry command)
-    lift' f = lift . lift . f
+    lift' = lift . lift
     command (Escape box) next = do
         yield $ Capture box
         run next
-    command (Capture box) next = do
-        lift' load box
-        local (box:) (run next) `finally` lift' unload box
+    command (Capture box@(Box load unload)) next = do
+        lift' load
+        local (box:) (run next) `finally` lift' unload
 
 finally :: MonadError e m => m a -> m () -> m a
 finally execute finalize = do
