@@ -15,8 +15,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Control.Monad.Region,
-                       Data.Region.IORefCount,
-                       Data.Region.IORegionRef
+                       Data.Region.IORefCount
   other-modules:       Control.Monad.Generator
   build-depends:       base >=4.6 && <4.7, mtl
   hs-source-dirs:      src

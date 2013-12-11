@@ -15,8 +15,8 @@ import Data.IORef (newIORef, atomicModifyIORef')
 newtype IORefCount m s = IORefCount (Handle m s)
   deriving (Resource m)
 
--- |@newIORefCount f@ creates a new `IORefCount` with an initial reference count
--- of 1. The finalizer @f@ is run when the reference count hits zero.
+-- |@newIORefCount f@ creates a new `IORefCount` with an initial reference count of
+-- one. The finalizer @f@ is run when the reference count hits zero.
 newIORefCount :: MonadIO m => m () -> RegionT s m (IORefCount m s)
 newIORefCount finalize = do
     -- The reference is automatically incremented when newHandle is called.
@@ -24,10 +24,11 @@ newIORefCount finalize = do
     handle <- newHandle (acquire ref) (release ref)
     return $ IORefCount handle
   where
-    acquire ref = liftIO $ atomicModifyIORef' ref (\x -> (x + 1, ()))
+    acquire ref = liftIO $ atomicModifyIORef' ref $ \x -> (x + 1, ())
+
     release ref = do
-        count <- liftIO $ atomicModifyIORef' ref (\x -> (x - 1, x))
-        when (count == 1) finalize
+        destroy <- liftIO $ atomicModifyIORef' ref $ \x -> (x - 1, x == 1)
+        when destroy finalize
 
 -- |@withIORefCount@ lifts an operation into the region monad. A handle is
 -- specified to ensure that the operation can only be used when the handle is
