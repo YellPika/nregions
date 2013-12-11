@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RankNTypes, TupleSections, TypeOperators, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RankNTypes,
+             TupleSections, TypeOperators, UndecidableInstances #-}
 
 module Control.Monad.Generator (
     GeneratorT (..), yield
@@ -7,6 +8,7 @@ module Control.Monad.Generator (
 import Control.Arrow (second)
 import Control.Applicative (Alternative, Applicative, (<*>), (<|>), pure, empty)
 import Control.Monad (MonadPlus, ap, liftM, mzero, mplus)
+import Control.Monad.Fix (MonadFix, mfix)
 import Control.Monad.Trans (MonadIO, MonadTrans, lift, liftIO)
 import Control.Monad.Error (MonadError, catchError, throwError)
 import Control.Monad.Reader (MonadReader, ask, local)
@@ -39,6 +41,13 @@ instance Monad m => Monad (GeneratorT y m) where
 
 instance MonadIO m => MonadIO (GeneratorT y m) where
     liftIO = lift . liftIO
+
+instance MonadFix m => MonadFix (GeneratorT y m) where
+    mfix f = GeneratorT $ mfix mfix'
+      where
+        mfix' (Left x) = runGeneratorT (f x)
+        mfix' (Right (y, n)) = return $
+            Right (y, GeneratorT (runGeneratorT n >>= mfix'))
 
 instance MonadPlus m => MonadPlus (GeneratorT y m) where
     mzero = GeneratorT mzero
